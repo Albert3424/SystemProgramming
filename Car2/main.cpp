@@ -126,6 +126,7 @@ class Car
 	struct
 	{
 		std::thread panel_thread;
+		std::thread engine_thread;
 	}threads_container;
 public:
 	Car(double consumption, int capacity, int max_speed = 250) :
@@ -144,17 +145,20 @@ public:
 	}
 	~Car()
 	{
+		if (threads_container.engine_thread.joinable()) threads_container.engine_thread.join();
 		cout << "The car is over" << endl;
 	}
 	void get_in()
 	{
 		driver_inside = true;
 		threads_container.panel_thread = std::thread(&Car::panel, this);
+		threads_container.engine_thread = std::thread(&Car::engine_cycle, this);
 	}
 	void get_out()
 	{
 		driver_inside = false;
-		if (threads_container.panel_thread.joinable())threads_container.panel_thread.join();
+		if (threads_container.panel_thread.joinable()) threads_container.panel_thread.join();
+		if (threads_container.engine_thread.joinable()) threads_container.engine_thread.join();
 		system("CLS");
 		cout << "You are out of the Car" << endl;
 	}
@@ -174,8 +178,9 @@ public:
 				cout << "Введите объем топлива: "; cin >> fuel;
 				tank.fill(fuel);
 				break;
-			case Escape:
-				get_out();
+			case 'I': case 'i':
+				engine.started() ? engine.stop() : engine.start();
+				break;
 			}
 		} while (key != Escape);
 	}
@@ -196,6 +201,31 @@ public:
 		tank.info();
 		cout << "Speed:   " << speed << " km/h\n";
 		cout << "MaxSpeed:" << MAX_SPEED << " km/h\n";
+	}
+	void engine_cycle()
+	{
+		while (driver_inside)
+		{
+			if (engine.started() && tank.get_fuel_level() > 0)
+			{
+				double fuel_spent = engine.get_consumption_per_second() * 0.03;
+				tank.give_fuel(fuel_spent);
+				speed += (MAX_SPEED - speed) / 10;
+				if (tank.get_fuel_level() <= 0)
+				{
+					engine.stop();
+				}
+			}
+			if (!engine.started())
+			{
+				speed -= speed / 10;
+				if (speed < 0)
+				{
+					speed = 0;
+				}
+			}
+			Sleep(1);
+		}
 	}
 };
 
