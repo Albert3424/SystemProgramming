@@ -131,6 +131,29 @@ class Car
 		std::thread engine_idle_thread;
 		std::thread free_wheeling_thread;
 	}threads_container;
+	double get_fuel_consumption_rate() const 
+	{
+		if (speed <= 60)
+		{
+			return 0.0020;
+		}
+		else if (speed <= 100)
+		{
+			return 0.0014;
+		}
+		else if (speed <= 140)
+		{
+			return 0.0020;
+		}
+		else if (speed <= 200)
+		{
+			return 0.0025;
+		}
+		else 
+		{
+			return 0.0030;
+		}
+	}
 public:
 	Car(double consumption, int capacity, int max_speed = 250, int acceleration = 10) :
 		MAX_SPEED
@@ -232,6 +255,15 @@ public:
 				threads_container.free_wheeling_thread.join();
 		} while (key != Escape);
 	}
+	double calculate_fuel_consumption() 
+	{
+		double consumptionRate = get_fuel_consumption_rate();
+		double fuelConsumption = consumptionRate * speed;
+
+		fuelConsumption = fuelConsumption / 3600.0;
+
+		return fuelConsumption;
+	}
 	void free_wheeling()
 	{
 		while (--speed > 0)
@@ -242,7 +274,7 @@ public:
 	}
 	void engine_idle()
 	{
-		while (engine.started() && tank.give_fuel(engine.get_consumption_per_second()))
+		while (engine.started() && tank.give_fuel(calculate_fuel_consumption()))
 		{
 			std::this_thread::sleep_for(1s);
 		}
